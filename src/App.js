@@ -5,30 +5,35 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import CloudIcon from "@mui/icons-material/Cloud";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
 import moment from "moment";
 import "moment/min/locales";
 import { useTranslation } from "react-i18next";
+
+import { useSelector, useDispatch } from "react-redux";
+import { weaterfetch } from "./weather";
+
 moment.locale("ar");
 
 let theme = createTheme({
   typography: ["IBM"],
 });
 
-let cancelAxios = null;
-
 function App() {
   const { t, i18n } = useTranslation();
   const [locale, setLocale] = useState("ar");
   const [dateAndTime, setdateAndTime] = useState();
-  const [weather, setWeather] = useState({
-    temp: null,
-    tempMax: null,
-    tempMin: null,
-    description: "",
-    imIcon: "",
+
+  const dispatch = useDispatch();
+
+  const isLodar = useSelector((state) => {
+    return state.weather.isLodar;
+  });
+
+  const weather = useSelector((state) => {
+    return state.weather.weather;
   });
 
   const direction = locale == "ar" ? "rtl" : "ltr";
@@ -45,42 +50,12 @@ function App() {
     }
     setdateAndTime(moment().format("lll"));
   }
+
   useEffect(() => {
     i18n.changeLanguage(locale);
     setdateAndTime(moment().format("lll"));
 
-    axios
-      .get(
-        "https://api.openweathermap.org/data/2.5/weather?lat=24.77&lon=46.73&appid=642a8411c503d2b07b05b52ba21710f1",
-        {
-          cancelToken: new axios.CancelToken((c) => {
-            cancelAxios = c;
-          }),
-        }
-      )
-      .then(function (response) {
-        const temp = Math.round(response.data.main.temp - 272.15);
-        const tempMax = Math.round(response.data.main.temp_max - 272.15);
-        const tempMin = Math.round(response.data.main.temp_min - 272.15);
-        const description = response.data.weather[0].description;
-        const imIcon = response.data.weather[0].icon;
-
-        setWeather({
-          temp: temp,
-          tempMax: tempMax,
-          tempMin: tempMin,
-          description: description,
-          imIcon: `https://openweathermap.org/img/wn/${imIcon}@2x.png`,
-        });
-      })
-      .catch(function (error) {
-        // handle error
-        console.log(error);
-      });
-
-    return () => {
-      cancelAxios();
-    };
+    dispatch(weaterfetch());
   }, []);
 
   return (
@@ -132,6 +107,8 @@ function App() {
                         alignItems: "center",
                       }}
                     >
+                      {isLodar ? <CircularProgress /> : ""}
+
                       <Typography variant="h1" style={{ textAlign: "right" }}>
                         {weather.temp}
                       </Typography>
